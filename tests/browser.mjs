@@ -1,0 +1,52 @@
+import { chromium, expect } from '@playwright/test';
+import { readFile, mkdir } from 'node:fs/promises';
+import assert from 'node:assert/strict';
+const link=(await readFile('.private/local-link.txt','utf8')).trim();
+const browser=await chromium.launch({headless:true});
+await mkdir('outputs',{recursive:true});
+const context=await browser.newContext({viewport:{width:1280,height:900}});
+const page=await context.newPage();
+const errors=[]; page.on('pageerror',e=>errors.push(e.message));
+try {
+  await page.goto(link); await page.getByRole('button',{name:'Add your first task',exact:true}).waitFor();
+  assert.equal(new URL(page.url()).hash,'');
+  await page.screenshot({path:'outputs/today-desktop.png',fullPage:true});
+  await page.getByRole('button',{name:'Add your first task',exact:true}).click();
+  await page.getByLabel('What do you want to work on?').fill('Đọc Real Analysis');
+  await page.getByLabel('Basket',{exact:true}).selectOption('mathematics');
+  await page.getByLabel('First small step').fill('Open the textbook and read one definition.');
+  await page.getByRole('button',{name:'Add task',exact:true}).click();
+  await page.getByRole('button',{name:'Start Đọc Real Analysis',exact:true}).click();
+  await page.getByRole('button',{name:'Pause',exact:true}).waitFor();
+  for (const width of [375,390,1280]) {
+    await page.setViewportSize({width,height:width<600?844:900});
+    await page.screenshot({path:`outputs/focus-${width}.png`,fullPage:true});
+    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`overflow at ${width}`);
+    const finish=await page.getByRole('button',{name:'Finish task',exact:true}).boundingBox();
+    assert(finish.y+finish.height<=page.viewportSize().height,`Finish below viewport at ${width}`);
+  }
+  await page.getByRole('button',{name:'Pause',exact:true}).click();
+  await page.getByRole('button',{name:'Resume',exact:true}).waitFor();
+  await page.reload();
+  await page.getByRole('button',{name:/Your session is paused/}).click();
+  await page.getByRole('button',{name:'Resume',exact:true}).click();
+  await page.getByRole('button',{name:'Finish task',exact:true}).click();
+  await page.getByRole('heading',{name:'You showed up.'}).waitFor();
+  await page.screenshot({path:'outputs/celebration.png',fullPage:true});
+  await page.getByRole('button',{name:'Back to today',exact:true}).click();
+  await page.locator('summary').filter({hasText:'Completed'}).click();
+  await page.getByRole('button',{name:'Undo completion of Đọc Real Analysis'}).click();
+  await page.getByRole('button',{name:'Start Đọc Real Analysis',exact:true}).waitFor();
+  await page.getByRole('button',{name:'This week',exact:true}).click();
+  await page.getByRole('button',{name:/Mathematics/}).click();
+  await page.screenshot({path:'outputs/week-desktop.png',fullPage:true});
+  await page.getByRole('button',{name:'Today',exact:true}).click();
+  await page.setViewportSize({width:375,height:812});
+  await page.screenshot({path:'outputs/today-375.png',fullPage:true});
+  await page.getByRole('button',{name:'Settings',exact:true}).click();
+  await page.getByLabel('Completion sound').click();
+  await expect(page.getByLabel('Completion sound')).toBeChecked();
+  await page.getByRole('button',{name:'Close dialog'}).click();
+  assert.deepEqual(errors,[]);
+  console.log('Browser flow passed: private link, Vietnamese task, focus, pause/reload/resume, completion, undo, weekly details, settings, desktop and mobile layouts.');
+} finally { await browser.close(); }

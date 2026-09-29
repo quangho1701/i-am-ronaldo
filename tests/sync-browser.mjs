@@ -1,0 +1,34 @@
+import { chromium, expect } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
+import assert from 'node:assert/strict';
+const link=(await readFile('.private/local-link.txt','utf8')).trim();
+const browser=await chromium.launch({headless:true});
+const a=await browser.newContext({viewport:{width:390,height:844}}),b=await browser.newContext({viewport:{width:375,height:812}});
+const first=await a.newPage(),second=await b.newPage();
+try {
+  await Promise.all([first.goto(link),second.goto(link)]);
+  await first.getByRole('button',{name:'Start Đọc Real Analysis',exact:true}).click();
+  await first.getByRole('button',{name:'Pause',exact:true}).waitFor();
+  await expect(second.getByRole('button',{name:/You're in a session/})).toBeVisible({timeout:22000});
+  await second.getByRole('button',{name:/You're in a session/}).click();
+  await first.getByRole('button',{name:'Pause',exact:true}).click();
+  await expect(second.getByRole('button',{name:'Resume',exact:true})).toBeVisible({timeout:10000});
+  await first.getByRole('button',{name:'Finish task',exact:true}).click();
+  await expect(second.getByRole('heading',{name:'Session saved.'})).toBeVisible({timeout:10000});
+  await first.getByRole('button',{name:'Back to today',exact:true}).click();
+  await first.getByRole('button',{name:'Add task',exact:true}).click();
+  await first.getByLabel('What do you want to work on?').fill('API lost response');
+  let dropped=false;
+  await first.route('**/api/command',async route=>{if(!dropped){dropped=true;await route.fetch();await route.abort('failed');}else await route.continue();});
+  await first.getByRole('dialog').getByRole('button',{name:'Add task',exact:true}).click();
+  await expect(first.getByRole('dialog').getByRole('button',{name:'Retry action'})).toBeVisible();
+  await expect(first.getByLabel('What do you want to work on?')).toHaveValue('API lost response');
+  await first.getByRole('dialog').getByRole('button',{name:'Retry action'}).click();
+  await expect(first.getByRole('dialog')).not.toBeVisible();
+  const state=await (await a.request.get('http://localhost:5173/api/state')).json();
+  assert.equal(state.tasks.filter(t=>t.title==='API lost response').length,1);
+  await first.emulateMedia({reducedMotion:'reduce'});
+  await first.evaluate(()=>document.documentElement.style.fontSize='200%');
+  assert(await first.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  console.log('Two independent browser contexts synchronize start/pause/finish. Lost successful response retries exactly once and preserves the draft. Reduced motion and 200% root text size have no horizontal overflow.');
+} finally {await browser.close();}
