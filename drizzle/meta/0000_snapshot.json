@@ -1,119 +1,117 @@
 {
-  "version": "6",
-  "dialect": "sqlite",
-  "id": "c0f18ae8-c224-4705-af50-0a021f10faf9",
+  "id": "95c0c809-10e1-4107-99a8-a034df7eb9a2",
   "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
   "tables": {
-    "mutation_receipts": {
+    "public.mutation_receipts": {
       "name": "mutation_receipts",
+      "schema": "",
       "columns": {
         "owner_id": {
           "name": "owner_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "request_id": {
           "name": "request_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "fingerprint": {
           "name": "fingerprint",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "revision": {
           "name": "revision",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         }
       },
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {
         "mutation_receipts_owner_id_request_id_pk": {
+          "name": "mutation_receipts_owner_id_request_id_pk",
           "columns": [
             "owner_id",
             "request_id"
-          ],
-          "name": "mutation_receipts_owner_id_request_id_pk"
+          ]
         }
       },
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
-    "workspaces": {
+    "public.workspaces": {
       "name": "workspaces",
+      "schema": "",
       "columns": {
         "owner_id": {
           "name": "owner_id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "document": {
           "name": "document",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "active_session": {
           "name": "active_session",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "revision": {
           "name": "revision",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
           "default": 0
         },
         "last_mutation": {
           "name": "last_mutation",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         }
       },
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
+      "policies": {},
       "checkConstraints": {
         "valid_document": {
           "name": "valid_document",
-          "value": "json_valid(\"workspaces\".\"document\")"
+          "value": "(\"workspaces\".\"document\")::jsonb IS NOT NULL"
         },
         "single_session_object": {
           "name": "single_session_object",
-          "value": "\"workspaces\".\"active_session\" IS NULL OR (json_valid(\"workspaces\".\"active_session\") AND json_type(\"workspaces\".\"active_session\") = 'object')"
+          "value": "\"workspaces\".\"active_session\" IS NULL OR jsonb_typeof((\"workspaces\".\"active_session\")::jsonb) = 'object'"
         }
-      }
+      },
+      "isRLSEnabled": false
     }
   },
-  "views": {},
   "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
   "_meta": {
+    "columns": {},
     "schemas": {},
-    "tables": {},
-    "columns": {}
-  },
-  "internal": {
-    "indexes": {}
+    "tables": {}
   }
 }

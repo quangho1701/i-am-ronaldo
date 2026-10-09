@@ -1,6 +1,6 @@
 # I Am Ronaldo
 
-A personal daily task list and count-up focus timer. Built with the existing React, TypeScript, Vinext, Cloudflare Workers, D1, and Drizzle starter.
+A personal daily task list and count-up focus timer. Built with React, TypeScript, Next.js, Neon Postgres, and Drizzle, hosted on Vercel.
 
 ## Run locally
 
@@ -9,10 +9,12 @@ Requires Node 24+ (Node's built-in TypeScript support is used for tests).
 ```sh
 npm ci
 npm run setup:local
+vercel env pull .env.local   # or set DATABASE_URL to a disposable Postgres database
+npm run db:migrate
 npm run dev
 ```
 
-Open the link in `.private/local-link.txt`. The local key is generated randomly and separately from production; there is no authentication bypass. Use `localhost`, which browsers treat as a secure context for development cookies.
+Open the link in `.private/local-link.txt`. The local key is generated randomly and separately from production and stored in `.env.development.local`; there is no authentication bypass. Use `localhost`, which browsers treat as a secure context for development cookies.
 
 ## Features
 
@@ -39,11 +41,11 @@ See `docs/VERIFICATION.md` for the tests performed and remaining device checks.
 
 ## Production access and deployment
 
-Reuse the project in `.openai/hosting.json`. Publish using the Sites workflow; generated SQL under `drizzle/` creates the D1 tables before Worker upload. Only the shell is publicly accessible. Every data API validates the app's private-access cookie. There is no client-selected workspace identifier.
+The app is a Vercel project backed by a Neon Postgres database from the Vercel Marketplace, which provides `DATABASE_URL`. Apply schema changes with `npm run db:generate` and `npm run db:migrate` (reads `.env.local`) before deploying code that depends on them, then deploy with `vercel deploy --prod`. Only the shell is publicly accessible. Every data API validates the app's private-access cookie. There is no client-selected workspace identifier.
 
-Set the sensitive runtime variable `ACCESS_KEY_HASH` to the lowercase SHA-256 hex digest of a randomly generated 32-byte base64url key (43 characters). The device link is `https://your-host/#key=YOUR_KEY`. Keep the raw key outside source control. Changing the hash and deploying invalidates all previously issued cookies. The fragment is removed immediately and exchanged through a same-origin POST. Local `.dev.vars`, `.private/`, and generated runtime files are ignored.
+Set the sensitive environment variable `ACCESS_KEY_HASH` to the lowercase SHA-256 hex digest of a randomly generated 32-byte base64url key (43 characters). The device link is `https://your-host/#key=YOUR_KEY`. Keep the raw key outside source control. Changing the hash and deploying invalidates all previously issued cookies. The fragment is removed immediately and exchanged through a same-origin POST. Local `.env*`, `.private/`, and generated runtime files are ignored.
 
-If an old owner-scoped workspace is detected, the app fails closed instead of creating a competing workspace or merging records. Back up D1 and inspect all workspaces before migration. With exactly one verified legacy workspace and no `personal` row, update its `owner_id` and matching mutation receipts to `personal` together in a database transaction. Multiple legacy workspaces require an explicit selection; never merge them automatically. No legacy production database existed for this build.
+If an old owner-scoped workspace is detected, the app fails closed instead of creating a competing workspace or merging records. Back up the database and inspect all workspaces before migration. With exactly one verified legacy workspace and no `personal` row, update its `owner_id` and matching mutation receipts to `personal` together in a database transaction. Multiple legacy workspaces require an explicit selection; never merge them automatically. No legacy production database existed for this build.
 
 ## Important behavior
 
